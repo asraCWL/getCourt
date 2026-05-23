@@ -31,7 +31,7 @@ jobs:
       TARGET_DATE: "2026-06-10"
       START_LOCAL: "06:00"
       DURATION_MIN: "90"
-      COURT_PREFIXES: "01,02,03,04,05,06"
+      COURT_PREFIXES: "01,02,03,CC,05,06"
       RENOTIFY_HOURS: "3"
     steps:
       - uses: actions/checkout@v4

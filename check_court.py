@@ -36,7 +36,8 @@ TARGET_DATE  = os.environ.get("TARGET_DATE", "2026-06-10")  # YYYY-MM-DD, local
 START_LOCAL  = os.environ.get("START_LOCAL", "06:00")        # HH:MM, local
 DURATION_MIN = int(os.environ.get("DURATION_MIN", "90"))     # 06:00 -> 07:30
 COURT_PREFIXES = tuple(
-    p.strip() for p in os.environ.get("COURT_PREFIXES", "01,02,03,04,05,06").split(",")
+    # the first six courts are 01,02,03,CC,05,06 — there is no "04" (the 4th is CC│STATE)
+    p.strip() for p in os.environ.get("COURT_PREFIXES", "01,02,03,CC,05,06").split(",")
     if p.strip()
 )
 

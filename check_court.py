@@ -314,7 +314,8 @@ def main():
         state["last_notified_utc"] = now
 
     record("open" if available else "waiting", open_pref, free60_pref)
-    persist(available, open_courts, free60,
+    # store 2-char prefixes for the page (full court names go in the ntfy alert)
+    persist(available, open_pref, free60_pref,
             now if available else state.get("last_open_utc"))
     return 0
 

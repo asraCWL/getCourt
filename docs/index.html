@@ -87,31 +87,44 @@ body::after{
 body.state-open .cta{display:block}
 
 /* ---- court tiles ---- */
-.courts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr));
-  gap:12px; margin-top:34px}
-.tile{position:relative; border:1px solid var(--stroke); background:var(--glass);
-  border-radius:12px; padding:12px 12px 14px; overflow:hidden}
-.tile .no{font-family:"Teko",sans-serif; font-size:34px; font-weight:600; line-height:.9; color:var(--faint)}
-.tile .nm{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.seg{display:grid; grid-template-columns:2fr 1fr; gap:4px; margin-top:12px}
-.seg span{height:9px; border-radius:3px; background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.05); transition:.4s}
-.seg .lab{display:grid; grid-template-columns:2fr 1fr; gap:4px; margin-top:5px;
-  font-size:8.5px; letter-spacing:.06em; color:var(--faint)}
-/* states */
-.tile.free60 .no{color:var(--wait)}
-.tile.free60 .s0{background:var(--wait); border-color:var(--wait);
-  box-shadow:0 0 14px color-mix(in srgb,var(--wait) 55%,transparent)}
+.grid-h{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap;
+  gap:8px 18px; margin:34px 0 14px}
+.grid-h h2{font-family:"Teko",sans-serif; font-weight:500; font-size:30px; letter-spacing:.04em;
+  text-transform:uppercase; margin:0; color:var(--ink)}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:11px; letter-spacing:.03em; color:var(--mute)}
+.legend i{display:inline-block; width:16px; height:9px; border-radius:2px; margin-right:7px; vertical-align:middle}
+.legend .k-free{background:var(--wait)}
+.legend .k-lock{background:repeating-linear-gradient(45deg,var(--err) 0 3px,transparent 3px 6px);
+  border:1px solid color-mix(in srgb,var(--err) 50%,transparent)}
+.legend .k-open{background:var(--open)}
+
+.courts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(154px,1fr)); gap:12px}
+.tile{border:1px solid var(--stroke); background:var(--glass); border-radius:12px; padding:14px}
+.thead{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+.tile .no{font-family:"Teko",sans-serif; font-size:30px; font-weight:600; line-height:.9; color:var(--faint)}
+.tile .hint{font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--mute)}
+.track{display:flex; gap:3px; margin-top:12px; height:15px}
+.track .seg{border-radius:3px; transition:.45s;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06)}
+.track .free{flex:2}            /* 06:00–07:00 (the hour we want) */
+.track .lock{flex:1}            /* 07:00–07:30 (the contested half-hour) */
+.ticks{display:flex; justify-content:space-between; margin-top:6px;
+  font-size:9.5px; letter-spacing:.02em; color:var(--faint)}
+/* waiting + 06–07 free: amber hour, hatched-red contested half-hour */
+.tile.free60 .no,.tile.free60 .hint{color:var(--wait)}
+.tile.free60 .free{background:var(--wait); border-color:var(--wait);
+  box-shadow:0 0 12px color-mix(in srgb,var(--wait) 45%,transparent)}
+.tile.free60 .lock{border-color:color-mix(in srgb,var(--err) 45%,transparent);
+  background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--err) 85%,transparent) 0 4px,transparent 4px 8px)}
+/* even the hour is taken */
+.tile.taken .hint{color:var(--err)}
+.tile.taken .free,.tile.taken .lock{border-color:color-mix(in srgb,var(--err) 30%,transparent);
+  background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--err) 55%,transparent) 0 4px,transparent 4px 8px)}
+/* it's free — whole track green */
 .tile.open{border-color:color-mix(in srgb,var(--open) 60%,transparent)}
-.tile.open .no{color:var(--open)}
-.tile.open .s0,.tile.open .s1{background:var(--open); border-color:var(--open);
-  box-shadow:0 0 16px color-mix(in srgb,var(--open) 60%,transparent)}
-/* scan sweep while waiting */
-body.state-waiting .tile::after{content:""; position:absolute; inset:0;
-  background:linear-gradient(100deg,transparent 40%,color-mix(in srgb,var(--wait) 22%,transparent) 50%,transparent 60%);
-  transform:translateX(-120%); animation:scan 4.2s linear infinite}
-@keyframes scan{to{transform:translateX(120%)}}
+.tile.open .no,.tile.open .hint{color:var(--open)}
+.tile.open .free,.tile.open .lock{background:var(--open); border-color:var(--open);
+  box-shadow:0 0 14px color-mix(in srgb,var(--open) 55%,transparent)}
 
 /* ---- stat strip ---- */
 .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
@@ -175,6 +188,14 @@ body.stale .stale{display:inline}
     <div class="cta reveal d4"><a id="book" href="#" target="_blank" rel="noopener">Book it now →</a></div>
   </header>
 
+  <div class="grid-h reveal d4">
+    <h2>Watched courts</h2>
+    <div class="legend">
+      <span><i class="k-free"></i>06:00–07:00 free</span>
+      <span><i class="k-lock"></i>07:00–07:30 booked</span>
+      <span><i class="k-open"></i>all free → book</span>
+    </div>
+  </div>
   <section class="courts-grid reveal d4" id="tiles" aria-label="Watched courts"></section>
 
   <section class="stats reveal d5" id="stats"></section>
@@ -259,16 +280,19 @@ function render(){
   $("#why").innerHTML = why;
   $("#book").href = d.booking_url || "#";
 
-  // court tiles
-  const tiles = cw.map(c=>{
+  // court tiles — one time-track per court: [06:00–07:00 | 07:00–07:30]
+  const startL = d.start_local || "06:00", endL = d.end_local || "07:30";
+  const midL = addHr(startL, 1);
+  $("#tiles").innerHTML = cw.map(c=>{
     const isOpen = op.includes(c), is60 = f60.includes(c);
-    const cls = isOpen ? "tile open" : (is60 ? "tile free60" : "tile");
-    return `<div class="${cls}"><div class="no">${c}</div>
-      <div class="seg"><span class="s0"></span><span class="s1"></span></div>
-      <div class="seg lab"><span>${d.start_local||"06:00"}–${addHr(d.start_local||"06:00",1)}</span><span>–${d.end_local||"07:30"}</span></div>
+    const cls  = isOpen ? "tile open" : (is60 ? "tile free60" : "tile taken");
+    const hint = isOpen ? "free — book" : (is60 ? `${midL} booked` : `${startL} booked`);
+    return `<div class="${cls}">
+      <div class="thead"><span class="no">${c}</span><span class="hint">${hint}</span></div>
+      <div class="track"><span class="seg free"></span><span class="seg lock"></span></div>
+      <div class="ticks"><span>${startL}</span><span>${midL}</span><span>${endL}</span></div>
     </div>`;
   }).join("");
-  $("#tiles").innerHTML = tiles;
 
   // stats
   const stats = [

@@ -1,0 +1,65 @@
+name: Watch padel court
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"  # every 10 minutes (UTC) — fits the private-repo free quota
+
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check = normal run, test = send a test ntfy push"
+        type: choice
+        default: check
+        options: [check, test]
+
+# Only one run at a time so state.json commits don't race.
+concurrency:
+  group: watch-court
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # to commit state.json back to the repo
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    env:
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      NTFY_SERVER: https://ntfy.sh
+      PM_REFRESH_TOKEN: ${{ secrets.PM_REFRESH_TOKEN }}   # logged-in mode (optional)
+      PM_API_KEY: ${{ secrets.PM_API_KEY }}
+      TARGET_DATE: "2026-06-10"
+      START_LOCAL: "06:00"
+      DURATION_MIN: "90"
+      COURT_PREFIXES: "01,02,03,04,05,06"
+      RENOTIFY_HOURS: "3"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tz data
+        run: pip install tzdata
+
+      - name: Run watcher
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "test" ]; then
+            python check_court.py --test
+          else
+            python check_court.py
+          fi
+
+      - name: Persist state
+        if: always()
+        run: |
+          if ! git diff --quiet -- state.json; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add state.json
+            git commit -m "state: update court availability [skip ci]"
+            git push
+          else
+            echo "No state change."
+          fi

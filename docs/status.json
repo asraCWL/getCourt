@@ -18,21 +18,34 @@
   "auth": "logged-in",
   "cadence_min": 10,
   "watching_since_utc": "2026-05-23T05:30:27Z",
-  "checks_total": 2,
+  "checks_total": 3,
   "signals_sent": 0,
   "available": false,
   "courts_open": [],
   "courts_60": [
-    "01│JOE & THE JUICE",
-    "02│BJÖRN BORG",
-    "03│SPAREKASSEN DANMARK",
-    "05│MOVEYOURGAME",
-    "06│FINANCIAL OUTSOURCING"
+    "01",
+    "02",
+    "03",
+    "05",
+    "06"
   ],
-  "last_check_utc": "2026-05-23T05:42:19Z",
+  "last_check_utc": "2026-05-23T05:44:10Z",
   "last_open_utc": null,
   "last_notified_utc": null,
   "log": [
+    {
+      "t": "2026-05-23T05:44:10Z",
+      "status": "waiting",
+      "open": [],
+      "free60": [
+        "01",
+        "02",
+        "03",
+        "05",
+        "06"
+      ],
+      "auth": "logged-in"
+    },
     {
       "t": "2026-05-23T05:42:19Z",
       "status": "waiting",

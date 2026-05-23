@@ -43,28 +43,37 @@ jobs:
       - name: Install tz data
         run: pip install tzdata
 
-      - name: Run watcher
+      # GitHub's scheduled cron only fires ~hourly on the free tier, so instead
+      # of one check per trigger we loop inside the run: a check every CHECK_EVERY
+      # seconds for ~LOOP_MINUTES, publishing status (and sending ntfy) each time.
+      # With back-to-back hourly triggers this gives ~10-min coverage.
+      - name: Watch (loop, check every 10 min)
+        env:
+          LOOP_MINUTES: "50"
+          CHECK_EVERY: "600"
         run: |
           if [ "${{ github.event.inputs.mode }}" = "test" ]; then
             python check_court.py --test
-          else
-            python check_court.py
+            exit 0
           fi
-
-      - name: Publish status (for the GitHub Pages watcher page)
-        if: always()
-        run: |
-          if ! git diff --quiet -- docs/status.json; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add docs/status.json
-            git commit -m "status: court availability + signal feed [skip ci]"
-            # resilient push: rebase on any concurrent commits, retry once
-            for i in 1 2 3; do
-              git push && break
-              echo "push rejected, rebasing (attempt $i)…"
-              git pull --rebase --autostash origin main || true
-            done
-          else
-            echo "No status change."
-          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          END=$(( $(date +%s) + LOOP_MINUTES*60 ))
+          while : ; do
+            python check_court.py || true
+            if ! git diff --quiet -- docs/status.json; then
+              git add docs/status.json
+              git commit -m "status: court availability + signal feed [skip ci]" || true
+              # resilient push: rebase on concurrent commits, retry
+              for i in 1 2 3; do
+                if git push; then break; fi
+                echo "push rejected, rebasing (attempt $i)…"
+                git pull --rebase --autostash origin main || true
+              done
+            else
+              echo "no status change"
+            fi
+            [ "$(date +%s)" -ge "$END" ] && break
+            echo "next check in ${CHECK_EVERY}s…"
+            sleep "$CHECK_EVERY"
+          done

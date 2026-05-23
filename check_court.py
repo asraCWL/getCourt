@@ -149,12 +149,16 @@ def send_ntfy(title, message, priority="urgent", tags="tennis,bell"):
         print(f"  {title}: {message}")
         return False
     url = f"{NTFY_SERVER}/{NTFY_TOPIC}"
+    # HTTP headers must be latin-1; emojis belong in Tags (rendered by ntfy) and
+    # the message body (UTF-8), never in header values like Title.
+    def h(s):
+        return s.encode("latin-1", "ignore").decode("latin-1")
     headers = {
-        "Title": title,
-        "Priority": priority,
-        "Tags": tags,
+        "Title": h(title),
+        "Priority": h(priority),
+        "Tags": h(tags),
         "Click": BOOKING_URL,
-        "Actions": f"view, Open booking, {BOOKING_URL}",
+        "Actions": h(f"view, Open booking, {BOOKING_URL}"),
     }
     req = urllib.request.Request(
         url, data=message.encode("utf-8"), headers=headers, method="POST"
@@ -200,7 +204,7 @@ def hours_since(iso):
 def main():
     if "--test" in sys.argv:
         ok = send_ntfy(
-            "🎾 Padel watcher is live",
+            "Padel watcher is live",
             f"Watching {CLUB_SLUG} for {START_LOCAL}-(+{DURATION_MIN}min) on "
             f"{TARGET_DATE}, courts {'/'.join(COURT_PREFIXES)}. "
             f"You'll get a push here when it opens up.",
@@ -253,7 +257,7 @@ def main():
     if notify:
         courts_str = "\n".join(f"  • {c}" for c in courts)
         send_ntfy(
-            "🎾 06:00-07:30 court is OPEN!",
+            "06:00-07:30 court is OPEN!",
             f"Racket Club Kløver — {TARGET_DATE}\n"
             f"{START_LOCAL}-07:30 free on:\n{courts_str}\n\nBook now: {BOOKING_URL}",
             priority="urgent",

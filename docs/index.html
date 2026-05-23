@@ -159,13 +159,14 @@ body.state-open .cta{display:block}
 .stale{display:none; color:var(--err)}
 body.stale .stale{display:inline}
 
-/* entrance */
-.reveal{opacity:0; transform:translateY(14px); animation:rise .7s cubic-bezier(.2,.8,.2,1) forwards}
-@keyframes rise{to{opacity:1;transform:none}}
+/* entrance — base is visible; the animation only enhances, so content can
+   never get stuck invisible if the animation doesn't run (reduced motion etc.) */
+.reveal{animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{transform:translateY(14px)} to{transform:none}}  /* transform-only: content is always visible */
 .d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.22s}
 .d4{animation-delay:.32s}.d5{animation-delay:.42s}.d6{animation-delay:.52s}
-@media (prefers-reduced-motion:reduce){.reveal{animation:none;opacity:1;transform:none}
-  .live,.tile::after,.cta a,.status .blink{animation:none}}
+@media (prefers-reduced-motion:reduce){.reveal{animation:none}
+  .live,.cta a,.status .blink{animation:none}}
 </style>
 </head>
 <body class="state-waiting">

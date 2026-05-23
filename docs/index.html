@@ -8,7 +8,9 @@
 <meta name="description" content="A night watch for one padel slot — 06:00–07:30 at Racket Club Kløver.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<!-- fonts load non-render-blocking: page paints instantly with fallbacks, then upgrades -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"></noscript>
 <style>
 :root{
   --bg:#05070d; --bg2:#0a0f1a; --ink:#e9eef6; --mute:#6c7a90; --faint:#3a4456;
@@ -156,8 +158,8 @@ body.state-open .cta{display:block}
   align-items:center; color:var(--faint); font-size:11.5px; letter-spacing:.06em}
 .foot .tag{font-style:italic; color:var(--mute)}
 .foot a{color:var(--court); text-decoration:none}
-.stale{display:none; color:var(--err)}
-body.stale .stale{display:inline}
+.stale-note{display:none; color:var(--err)}
+body.is-stale .stale-note{display:inline}
 
 /* entrance — base is visible; the animation only enhances, so content can
    never get stuck invisible if the animation doesn't run (reduced motion etc.) */
@@ -207,7 +209,7 @@ body.stale .stale{display:inline}
   <div class="foot reveal d6">
     <span class="tag" id="tagline">the watch keeps its post.</span>
     <span>
-      <span class="stale">⚠ signal stale · </span>
+      <span class="stale-note">⚠ signal stale · </span>
       checked <span id="checks">—</span>× · view on
       <a id="repo" href="https://github.com/asraCWL/getCourt" target="_blank" rel="noopener">GitHub</a>
     </span>
@@ -256,7 +258,7 @@ function render(){
   const stale = d.last_check_utc && (Date.now()-new Date(d.last_check_utc).getTime() > STALE_AFTER);
   const state = open ? "open" : (d.log && d.log[0] && d.log[0].status==="error" ? "error" : "waiting");
   setAccent(state);
-  document.body.classList.toggle("stale", !!stale);
+  document.body.classList.toggle("is-stale", !!stale);
 
   $("#eyebrow").textContent = `${d.club||"Racket Club Kløver"} · Padel · Copenhagen`;
   $("#status").innerHTML = open ? "OPEN" : (state==="error" ? "OFFLINE" : 'WAIT<span class="blink">ING</span>');

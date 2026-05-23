@@ -26,6 +26,7 @@ import urllib.request
 # ---- Config -----------------------------------------------------------------
 CLUB_ID      = os.environ.get("CLUB_ID", "PDXpw2Hh4ZaSI6sTxslHS7tpelV2")
 CLUB_SLUG    = os.environ.get("CLUB_SLUG", "racketclubklover")
+CLUB_NAME    = os.environ.get("CLUB_NAME", "Racket Club Kløver")
 BOOKING_URL  = f"https://padelmates.se/club/{CLUB_SLUG}"
 API_BASE     = os.environ.get(
     "API_BASE", "https://fastapi-production-fargate.padelmates.io"
@@ -41,7 +42,8 @@ COURT_PREFIXES = tuple(
 
 NTFY_SERVER  = os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
 NTFY_TOPIC   = os.environ.get("NTFY_TOPIC", "")
-STATE_FILE   = os.environ.get("STATE_FILE", "state.json")
+STATE_FILE   = os.environ.get("STATE_FILE", "docs/status.json")
+CADENCE_MIN  = int(os.environ.get("CADENCE_MIN", "10"))  # shown on the status page
 RENOTIFY_HOURS = float(os.environ.get("RENOTIFY_HOURS", "3"))  # re-ping if still open
 
 # Optional auth: a logged-in account sees further than the ~14-day anonymous
@@ -126,13 +128,13 @@ def fetch_slots(start_ms, end_ms, id_token=None):
     return data.get("allSlots", []) if isinstance(data, dict) else []
 
 
-def find_matching_courts(slots, target_start_ms):
-    """Return sorted list of court names that have the wanted slot free."""
+def find_matching_courts(slots, target_start_ms, duration):
+    """Return sorted court names with a free `duration`-min slot at the start."""
     courts = set()
     for s in slots:
         if s.get("startTimestamp") != target_start_ms:
             continue
-        if int(s.get("duration", 0)) != DURATION_MIN:
+        if int(s.get("duration", 0)) != duration:
             continue
         if s.get("reservedIntersection") is True:
             continue
@@ -140,6 +142,13 @@ def find_matching_courts(slots, target_start_ms):
         if name[:2] in COURT_PREFIXES:
             courts.add(name)
     return sorted(courts)
+
+
+def end_label():
+    """Slot end time in HH:MM, given START_LOCAL + DURATION_MIN."""
+    hh, mm = (int(x) for x in START_LOCAL.split(":"))
+    total = hh * 60 + mm + DURATION_MIN
+    return f"{(total // 60) % 24:02d}:{total % 60:02d}"
 
 
 # ---- ntfy -------------------------------------------------------------------
@@ -183,8 +192,11 @@ def load_state():
 
 
 def save_state(state):
+    d = os.path.dirname(STATE_FILE)
+    if d:
+        os.makedirs(d, exist_ok=True)
     with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
+        json.dump(state, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
 
@@ -227,56 +239,83 @@ def main():
     except Exception as e:
         print(f"WARN: auth token refresh failed ({e}); falling back to anonymous")
         id_token = None
-    print("auth:", "logged-in" if id_token else "anonymous")
+    auth_mode = "logged-in" if id_token else "anonymous"
+    print("auth:", auth_mode)
+
+    state = load_state()
+    now = now_utc_iso()
+    watching_since = state.get("watching_since_utc") or now
+    checks_total = int(state.get("checks_total", 0)) + 1
+    signals_sent = int(state.get("signals_sent", 0))
+    log = state.get("log", [])
+
+    def record(status, open_courts=None, free60=None, note=""):
+        e = {"t": now, "status": status,
+             "open": open_courts or [], "free60": free60 or [], "auth": auth_mode}
+        if note:
+            e["note"] = note
+        log.insert(0, e)
+        del log[60:]   # keep the feed bounded
+
+    def persist(available, open_courts, free60, last_open):
+        save_state({
+            "club": CLUB_NAME, "booking_url": BOOKING_URL,
+            "target_date": TARGET_DATE, "start_local": START_LOCAL,
+            "end_local": end_label(), "duration_min": DURATION_MIN,
+            "slot": f"{START_LOCAL}–{end_label()}",
+            "courts_watched": list(COURT_PREFIXES), "timezone": TZ_NAME,
+            "auth": auth_mode, "cadence_min": CADENCE_MIN,
+            "watching_since_utc": watching_since,
+            "checks_total": checks_total, "signals_sent": signals_sent,
+            "available": available, "courts_open": open_courts, "courts_60": free60,
+            "last_check_utc": now, "last_open_utc": last_open,
+            "last_notified_utc": state.get("last_notified_utc"),
+            "log": log,
+        })
 
     try:
         slots = fetch_slots(win_start_ms, win_end_ms, id_token=id_token)
     except Exception as e:
         print(f"ERROR fetching slots: {e}")
+        record("error", note=str(e)[:120])
+        persist(state.get("available", False), state.get("courts_open", []),
+                state.get("courts_60", []), state.get("last_open_utc"))
         return 1  # transient; next cron run retries
 
-    courts = find_matching_courts(slots, target_start_ms)
-    available = len(courts) > 0
-
-    state = load_state()
+    open_courts = find_matching_courts(slots, target_start_ms, DURATION_MIN)
+    free60 = find_matching_courts(slots, target_start_ms, 60)
+    open_pref = sorted({c[:2] for c in open_courts})
+    free60_pref = sorted({c[:2] for c in free60})
+    available = len(open_courts) > 0
     was_available = bool(state.get("available"))
     last_notified = state.get("last_notified_utc")
 
     print(
-        f"{now_utc_iso()} target={TARGET_DATE} {START_LOCAL}+{DURATION_MIN}min "
-        f"available={available} courts={courts} (was={was_available})"
+        f"{now} target={TARGET_DATE} {START_LOCAL}+{DURATION_MIN}min "
+        f"available={available} open={open_pref} free60={free60_pref} "
+        f"(was={was_available})"
     )
 
-    notify = False
-    if available and not was_available:
-        notify = True  # just opened up
-    elif available and was_available and RENOTIFY_HOURS > 0 \
-            and hours_since(last_notified) >= RENOTIFY_HOURS:
-        notify = True  # still open, gentle reminder
-
+    notify = available and (
+        not was_available
+        or (RENOTIFY_HOURS > 0 and hours_since(last_notified) >= RENOTIFY_HOURS)
+    )
     if notify:
-        courts_str = "\n".join(f"  • {c}" for c in courts)
+        courts_str = "\n".join(f"  • {c}" for c in open_courts)
         send_ntfy(
-            "06:00-07:30 court is OPEN!",
-            f"Racket Club Kløver — {TARGET_DATE}\n"
-            f"{START_LOCAL}-07:30 free on:\n{courts_str}\n\nBook now: {BOOKING_URL}",
+            f"{START_LOCAL}-{end_label()} court is OPEN!",
+            f"{CLUB_NAME} — {TARGET_DATE}\n"
+            f"{START_LOCAL}-{end_label()} free on:\n{courts_str}\n\n"
+            f"Book now: {BOOKING_URL}",
             priority="urgent",
             tags="tennis,bell,rotating_light",
         )
-        state["last_notified_utc"] = now_utc_iso()
+        signals_sent += 1
+        state["last_notified_utc"] = now
 
-    state.update(
-        {
-            "target_date": TARGET_DATE,
-            "start_local": START_LOCAL,
-            "duration_min": DURATION_MIN,
-            "available": available,
-            "courts": courts,
-            "last_check_utc": now_utc_iso(),
-        }
-    )
-    state.setdefault("last_notified_utc", last_notified)
-    save_state(state)
+    record("open" if available else "waiting", open_pref, free60_pref)
+    persist(available, open_courts, free60,
+            now if available else state.get("last_open_utc"))
     return 0
 
 

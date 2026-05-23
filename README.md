@@ -4,7 +4,8 @@ Watches **[Racket Club Kløver](https://padelmates.se/club/racketclubklover)** o
 PadelMates and sends a phone push (via [ntfy](https://ntfy.sh)) the moment a
 **06:00–07:30 (90 min)** slot opens up on **courts 01–06** for a target date.
 
-A scheduled GitHub Action runs every 5 minutes — no laptop needed.
+A scheduled GitHub Action runs every 10 minutes — no laptop needed — and
+publishes a live status page: **https://asracwl.github.io/getCourt/**
 
 ## How it works
 
@@ -23,7 +24,8 @@ When someone books 07:00–07:30, the 90-min option disappears and only the
 
 [`check_court.py`](check_court.py) queries the target day, looks for a 90-min
 06:00 slot on courts 01–06, and pushes to ntfy on transition (closed → open).
-State is kept in [`state.json`](state.json) so you aren't spammed; while a slot
+State + a rolling signal log are kept in [`docs/status.json`](docs/status.json)
+(which also feeds the [status page](docs/index.html)) so you aren't spammed; while a slot
 stays open it re-pings every `RENOTIFY_HOURS` (default 3h) so you don't miss it.
 
 ## Booking horizon

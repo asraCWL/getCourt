@@ -1,0 +1,38 @@
+{
+  "club": "Racket Club Kløver",
+  "booking_url": "https://padelmates.se/club/racketclubklover",
+  "target_date": "2026-06-10",
+  "start_local": "06:00",
+  "end_local": "07:30",
+  "duration_min": 90,
+  "slot": "06:00–07:30",
+  "courts_watched": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06"
+  ],
+  "timezone": "Europe/Copenhagen",
+  "auth": "anonymous",
+  "cadence_min": 10,
+  "watching_since_utc": "2026-05-23T05:30:27Z",
+  "checks_total": 1,
+  "signals_sent": 0,
+  "available": false,
+  "courts_open": [],
+  "courts_60": [],
+  "last_check_utc": "2026-05-23T05:30:27Z",
+  "last_open_utc": null,
+  "last_notified_utc": null,
+  "log": [
+    {
+      "t": "2026-05-23T05:30:27Z",
+      "status": "waiting",
+      "open": [],
+      "free60": [],
+      "auth": "anonymous"
+    }
+  ]
+}

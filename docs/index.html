@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Court Watch · Racket Club Kløver</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070d'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%2319d0b3' stroke-width='2.4'/%3E%3Cline x1='16' y1='8' x2='16' y2='24' stroke='%2319d0b3' stroke-width='2.4'/%3E%3C/svg%3E">
+<meta name="description" content="A night watch for one padel slot — 06:00–07:30 at Racket Club Kløver.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05070d; --bg2:#0a0f1a; --ink:#e9eef6; --mute:#6c7a90; --faint:#3a4456;
+  --line:rgba(120,150,190,.10);
+  --court:#19d0b3;            /* padel turquoise */
+  --wait:#ffb02e;            /* amber: still waiting */
+  --open:#3cf06a;            /* electric green: it's free */
+  --err:#ff5d57;
+  --accent:var(--wait);      /* recolored per state by JS */
+  --glass:rgba(255,255,255,.025);
+  --stroke:rgba(255,255,255,.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{
+  font-family:"DM Mono",ui-monospace,monospace;
+  min-height:100vh; line-height:1.5; letter-spacing:.01em;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(25,208,179,.10), transparent 55%),
+    radial-gradient(90% 60% at 85% 8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
+    linear-gradient(180deg,var(--bg2),var(--bg) 60%);
+}
+/* faint court-line grid + grain */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+  background:
+    repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px 92px),
+    repeating-linear-gradient(0deg,var(--line) 0 1px,transparent 1px 92px);
+  -webkit-mask-image:radial-gradient(120% 100% at 50% 0,#000,transparent 78%);
+          mask-image:radial-gradient(120% 100% at 50% 0,#000,transparent 78%);
+}
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.045;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+.wrap{position:relative; z-index:1; max-width:880px; margin:0 auto; padding:26px 22px 64px}
+
+/* ---- top bar ---- */
+.bar{display:flex; align-items:center; justify-content:space-between; gap:12px;
+  font-size:12px; text-transform:uppercase; letter-spacing:.22em; color:var(--mute)}
+.brand{display:flex; align-items:center; gap:10px; color:var(--ink)}
+.live{width:9px;height:9px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 70%,transparent);
+  animation:pulse 2.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent)}
+  70%{box-shadow:0 0 0 12px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.bar .right{font-size:11px; letter-spacing:.18em}
+
+/* ---- hero ---- */
+.hero{margin-top:30px}
+.eyebrow{font-size:12px; letter-spacing:.3em; text-transform:uppercase; color:var(--court)}
+.status{
+  font-family:"Teko",sans-serif; font-weight:600; line-height:.82;
+  font-size:clamp(86px,21vw,210px); letter-spacing:.01em; margin:.02em 0 0;
+  color:var(--accent); text-transform:uppercase;
+  text-shadow:0 0 38px color-mix(in srgb,var(--accent) 45%,transparent);
+}
+.status .blink{animation:flick 5s infinite}
+@keyframes flick{0%,97%,100%{opacity:1}98%{opacity:.45}}
+.subline{font-family:"Teko",sans-serif; font-weight:400; line-height:1;
+  font-size:clamp(30px,7vw,56px); color:var(--ink); margin-top:-.08em;
+  display:flex; gap:.5em; flex-wrap:wrap; align-items:baseline}
+.subline .date{color:var(--mute)}
+.subline .courts{color:var(--court)}
+.why{margin-top:16px; max-width:60ch; color:var(--mute); font-size:13.5px}
+.why b{color:var(--ink); font-weight:500}
+
+.cta{display:none; margin-top:20px}
+.cta a{display:inline-flex; align-items:center; gap:10px; text-decoration:none;
+  font-family:"Teko",sans-serif; font-size:26px; letter-spacing:.04em; text-transform:uppercase;
+  color:#04140a; background:var(--open); padding:8px 22px; border-radius:8px;
+  box-shadow:0 10px 40px color-mix(in srgb,var(--open) 40%,transparent);
+  animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+body.state-open .cta{display:block}
+
+/* ---- court tiles ---- */
+.courts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr));
+  gap:12px; margin-top:34px}
+.tile{position:relative; border:1px solid var(--stroke); background:var(--glass);
+  border-radius:12px; padding:12px 12px 14px; overflow:hidden}
+.tile .no{font-family:"Teko",sans-serif; font-size:34px; font-weight:600; line-height:.9; color:var(--faint)}
+.tile .nm{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.seg{display:grid; grid-template-columns:2fr 1fr; gap:4px; margin-top:12px}
+.seg span{height:9px; border-radius:3px; background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.05); transition:.4s}
+.seg .lab{display:grid; grid-template-columns:2fr 1fr; gap:4px; margin-top:5px;
+  font-size:8.5px; letter-spacing:.06em; color:var(--faint)}
+/* states */
+.tile.free60 .no{color:var(--wait)}
+.tile.free60 .s0{background:var(--wait); border-color:var(--wait);
+  box-shadow:0 0 14px color-mix(in srgb,var(--wait) 55%,transparent)}
+.tile.open{border-color:color-mix(in srgb,var(--open) 60%,transparent)}
+.tile.open .no{color:var(--open)}
+.tile.open .s0,.tile.open .s1{background:var(--open); border-color:var(--open);
+  box-shadow:0 0 16px color-mix(in srgb,var(--open) 60%,transparent)}
+/* scan sweep while waiting */
+body.state-waiting .tile::after{content:""; position:absolute; inset:0;
+  background:linear-gradient(100deg,transparent 40%,color-mix(in srgb,var(--wait) 22%,transparent) 50%,transparent 60%);
+  transform:translateX(-120%); animation:scan 4.2s linear infinite}
+@keyframes scan{to{transform:translateX(120%)}}
+
+/* ---- stat strip ---- */
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
+  gap:1px; margin-top:30px; background:var(--stroke); border:1px solid var(--stroke);
+  border-radius:12px; overflow:hidden}
+.stat{background:var(--bg2); padding:14px 14px 12px}
+.stat .k{font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--mute)}
+.stat .v{font-family:"Teko",sans-serif; font-weight:500; font-size:34px; line-height:1; margin-top:4px; color:var(--ink)}
+.stat .v.sm{font-size:24px}
+.dot-auth{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--court);margin-left:6px;vertical-align:middle}
+
+/* ---- signal feed ---- */
+.feed-h{display:flex; align-items:baseline; justify-content:space-between; margin:38px 0 10px}
+.feed-h h2{font-family:"Teko",sans-serif; font-weight:500; font-size:30px; letter-spacing:.04em;
+  text-transform:uppercase; margin:0; color:var(--ink)}
+.feed-h span{font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--mute)}
+.feed{border-top:1px solid var(--stroke)}
+.row{display:grid; grid-template-columns:96px 14px 1fr auto; gap:12px; align-items:center;
+  padding:11px 2px; border-bottom:1px solid rgba(255,255,255,.045); font-size:13px}
+.row .t{color:var(--mute); font-size:12px}
+.row .sd{width:8px;height:8px;border-radius:50%; justify-self:center}
+.sd.waiting{background:var(--wait)} .sd.open{background:var(--open)}
+.sd.error{background:var(--err)} .sd.offline{background:var(--faint)}
+.row .msg{color:var(--ink)} .row .msg .hl{color:var(--court)}
+.row .meta{color:var(--faint); font-size:11px; letter-spacing:.1em; text-transform:uppercase}
+
+/* ---- footer ---- */
+.foot{margin-top:46px; display:flex; flex-wrap:wrap; gap:8px 18px; justify-content:space-between;
+  align-items:center; color:var(--faint); font-size:11.5px; letter-spacing:.06em}
+.foot .tag{font-style:italic; color:var(--mute)}
+.foot a{color:var(--court); text-decoration:none}
+.stale{display:none; color:var(--err)}
+body.stale .stale{display:inline}
+
+/* entrance */
+.reveal{opacity:0; transform:translateY(14px); animation:rise .7s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.22s}
+.d4{animation-delay:.32s}.d5{animation-delay:.42s}.d6{animation-delay:.52s}
+@media (prefers-reduced-motion:reduce){.reveal{animation:none;opacity:1;transform:none}
+  .live,.tile::after,.cta a,.status .blink{animation:none}}
+</style>
+</head>
+<body class="state-waiting">
+<div class="wrap">
+
+  <div class="bar reveal d1">
+    <div class="brand"><span class="live"></span>COURT&nbsp;WATCH</div>
+    <div class="right">auto-refresh&nbsp;·&nbsp;<span id="refresh-note">60s</span></div>
+  </div>
+
+  <header class="hero">
+    <div class="eyebrow reveal d1" id="eyebrow">Racket Club Kløver · Padel · Copenhagen</div>
+    <h1 class="status reveal d2" id="status">WAITING</h1>
+    <div class="subline reveal d3">
+      <span id="slot">06:00–07:30</span>
+      <span class="date" id="date">Wed 10 Jun</span>
+      <span class="courts" id="courtspan">Courts 01–06</span>
+    </div>
+    <p class="why reveal d4" id="why">Reading the signal…</p>
+    <div class="cta reveal d4"><a id="book" href="#" target="_blank" rel="noopener">Book it now →</a></div>
+  </header>
+
+  <section class="courts-grid reveal d4" id="tiles" aria-label="Watched courts"></section>
+
+  <section class="stats reveal d5" id="stats"></section>
+
+  <div class="feed-h reveal d5"><h2>Signal feed</h2><span>latest first</span></div>
+  <section class="feed reveal d6" id="feed"></section>
+
+  <div class="foot reveal d6">
+    <span class="tag" id="tagline">the watch keeps its post.</span>
+    <span>
+      <span class="stale">⚠ signal stale · </span>
+      checked <span id="checks">—</span>× · view on
+      <a id="repo" href="https://github.com/asraCWL/getCourt" target="_blank" rel="noopener">GitHub</a>
+    </span>
+  </div>
+</div>
+
+<script>
+const STALE_AFTER = 1000*60*35;     // older than this -> "stale"
+const REFRESH_MS  = 45000;
+let DATA = null;
+
+const $ = s => document.querySelector(s);
+
+function ago(iso){
+  if(!iso) return "—";
+  const d = (Date.now() - new Date(iso).getTime())/1000;
+  if(d < 45) return "just now";
+  if(d < 90) return "1 min ago";
+  if(d < 3600) return Math.round(d/60)+" min ago";
+  if(d < 5400) return "1 hr ago";
+  if(d < 86400) return Math.round(d/3600)+" hr ago";
+  return Math.round(d/86400)+" d ago";
+}
+function clock(iso){
+  if(!iso) return "—";
+  return new Date(iso).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+}
+function fmtDate(ymd){
+  if(!ymd) return "";
+  const d = new Date(ymd+"T00:00:00");
+  return d.toLocaleDateString("en-GB",{weekday:"short",day:"2-digit",month:"short"});
+}
+function joinCourts(arr){ return (arr&&arr.length)? arr.join(" "): "—"; }
+
+function setAccent(state){
+  document.body.classList.remove("state-waiting","state-open","state-error");
+  document.body.classList.add("state-"+state);
+  const v = {open:"var(--open)", error:"var(--err)", waiting:"var(--wait)"}[state] || "var(--wait)";
+  document.documentElement.style.setProperty("--accent", v);
+}
+
+function render(){
+  if(!DATA) return;
+  const d = DATA;
+  const open = d.available === true;
+  const stale = d.last_check_utc && (Date.now()-new Date(d.last_check_utc).getTime() > STALE_AFTER);
+  const state = open ? "open" : (d.log && d.log[0] && d.log[0].status==="error" ? "error" : "waiting");
+  setAccent(state);
+  document.body.classList.toggle("stale", !!stale);
+
+  $("#eyebrow").textContent = `${d.club||"Racket Club Kløver"} · Padel · Copenhagen`;
+  $("#status").innerHTML = open ? "OPEN" : (state==="error" ? "OFFLINE" : 'WAIT<span class="blink">ING</span>');
+  $("#slot").textContent = d.slot || "06:00–07:30";
+  $("#date").textContent = fmtDate(d.target_date);
+  const cw = d.courts_watched||[];
+  $("#courtspan").textContent = cw.length? `Courts ${cw[0]}–${cw[cw.length-1]}` : "";
+  $("#refresh-note").textContent = (REFRESH_MS/1000)+"s";
+
+  // why-we-wait
+  const f60 = d.courts_60||[], op = d.courts_open||[];
+  let why;
+  if(open){
+    why = `<b>It's free.</b> ${d.start_local}–${d.end_local} is open on court${op.length>1?"s":""} <b>${joinCourts(op)}</b>. Tap below before someone else does.`;
+  } else if(f60.length){
+    why = `The half-hour after <b>${d.start_local.replace(":00",":00")}</b> is booked on every watched court. <b>${d.start_local}–${(d.start_local.split(":")[0]*1+1).toString().padStart(2,"0")}:00</b> is free on ${f60.length} (<b>${joinCourts(f60)}</b>) — we're waiting for one of them to release <b>${addHr(d.start_local,1)}–${d.end_local}</b>.`;
+  } else if(d.auth==="anonymous"){
+    why = `Nothing visible yet — <b>${fmtDate(d.target_date)}</b> opens in the public booking window ~14 days out. Watching anonymously until then.`;
+  } else {
+    why = `No <b>${d.start_local}</b> opening on courts ${cw[0]}–${cw[cw.length-1]} right now. Holding the watch.`;
+  }
+  $("#why").innerHTML = why;
+  $("#book").href = d.booking_url || "#";
+
+  // court tiles
+  const tiles = cw.map(c=>{
+    const isOpen = op.includes(c), is60 = f60.includes(c);
+    const cls = isOpen ? "tile open" : (is60 ? "tile free60" : "tile");
+    return `<div class="${cls}"><div class="no">${c}</div>
+      <div class="seg"><span class="s0"></span><span class="s1"></span></div>
+      <div class="seg lab"><span>${d.start_local||"06:00"}–${addHr(d.start_local||"06:00",1)}</span><span>–${d.end_local||"07:30"}</span></div>
+    </div>`;
+  }).join("");
+  $("#tiles").innerHTML = tiles;
+
+  // stats
+  const stats = [
+    ["Last check", ago(d.last_check_utc), "sm"],
+    ["Checks", (d.checks_total??0).toLocaleString(), ""],
+    ["Alerts sent", (d.signals_sent??0), ""],
+    ["Mode", d.auth==="logged-in"?'IN<span class="dot-auth"></span>':"ANON", ""],
+    ["Every", (d.cadence_min??10)+"m", ""],
+    ["On watch", ago(d.watching_since_utc).replace(" ago",""), "sm"],
+  ];
+  $("#stats").innerHTML = stats.map(([k,v,c])=>
+    `<div class="stat"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`).join("");
+  $("#checks").textContent = (d.checks_total??0).toLocaleString();
+
+  // feed
+  const log = d.log||[];
+  $("#feed").innerHTML = log.map(e=>{
+    let msg;
+    if(e.status==="open") msg = `<span class="hl">OPEN</span> · ${e.start_local||d.start_local}–${d.end_local} free on ${joinCourts(e.open)}`;
+    else if(e.status==="error") msg = `signal lost · ${e.note||"fetch failed"}`;
+    else msg = (e.free60&&e.free60.length)
+        ? `still booked · 06–07 free on <span class="hl">${joinCourts(e.free60)}</span>`
+        : `still booked · nothing free`;
+    return `<div class="row"><span class="t" data-t="${e.t}">${ago(e.t)}</span>
+      <span class="sd ${e.status}"></span><span class="msg">${msg}</span>
+      <span class="meta">${e.auth==="logged-in"?"auth":"anon"}</span></div>`;
+  }).join("") || `<div class="row"><span class="t">—</span><span class="sd offline"></span><span class="msg">warming up…</span><span class="meta"></span></div>`;
+
+  // tagline by state
+  $("#tagline").textContent = open ? "and the court is yours."
+    : state==="error" ? "the watch stumbled — it will rise again."
+    : "and so the watch resumes.";
+}
+function addHr(hhmm,n){const [h,m]=hhmm.split(":").map(Number);return `${((h+n)%24).toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}`;}
+
+function tick(){ // refresh relative times only
+  if(!DATA) return;
+  document.querySelectorAll("[data-t]").forEach(el=>el.textContent=ago(el.dataset.t));
+}
+async function load(){
+  try{
+    const r = await fetch("status.json?_="+Date.now(), {cache:"no-store"});
+    if(!r.ok) throw 0;
+    DATA = await r.json();
+    render();
+  }catch(e){
+    if(!DATA){ $("#why").textContent="Waiting for the first signal to land…"; }
+  }
+}
+load();
+setInterval(load, REFRESH_MS);
+setInterval(tick, 1000);
+</script>
+</body>
+</html>

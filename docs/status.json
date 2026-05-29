@@ -18,7 +18,7 @@
   "auth": "logged-in",
   "cadence_min": 10,
   "watching_since_utc": "2026-05-23T05:30:27Z",
-  "checks_total": 351,
+  "checks_total": 352,
   "signals_sent": 0,
   "available": false,
   "courts_open": [],
@@ -30,10 +30,24 @@
     "06",
     "CC"
   ],
-  "last_check_utc": "2026-05-29T00:17:59Z",
+  "last_check_utc": "2026-05-29T00:28:01Z",
   "last_open_utc": null,
   "last_notified_utc": null,
   "log": [
+    {
+      "t": "2026-05-29T00:28:01Z",
+      "status": "waiting",
+      "open": [],
+      "free60": [
+        "01",
+        "02",
+        "03",
+        "05",
+        "06",
+        "CC"
+      ],
+      "auth": "logged-in"
+    },
     {
       "t": "2026-05-29T00:17:59Z",
       "status": "waiting",
@@ -848,20 +862,6 @@
     },
     {
       "t": "2026-05-27T22:06:51Z",
-      "status": "waiting",
-      "open": [],
-      "free60": [
-        "01",
-        "02",
-        "03",
-        "05",
-        "06",
-        "CC"
-      ],
-      "auth": "logged-in"
-    },
-    {
-      "t": "2026-05-27T21:56:49Z",
       "status": "waiting",
       "open": [],
       "free60": [
